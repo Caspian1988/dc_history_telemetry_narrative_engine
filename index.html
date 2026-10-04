@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DC History Telemetry & Narrative Engine</title>
+  
+  <!-- Fonts & Leaflet CSS -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <style>
+    :root {
+      --bg: #070a13;
+      --panel: #0d1527;
+      --border: #1e293b;
+      --cyan: #00f0ff;
+      --amber: #f59e0b;
+      --green: #10b981;
+      --red: #ef4444;
+      --text: #f8fafc;
+      --muted: #64748b;
+      --font-display: 'Orbitron', monospace;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-mono);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand-title {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      color: var(--cyan);
+      letter-spacing: 1px;
+    }
+
+    .app-layout {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 16px;
+      height: calc(100vh - 100px);
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #000;
+    }
+
+    /* CSS dark filter for map tiles */
+    .dark-tiles {
+      filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      height: 100%;
+      overflow-y: auto;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .card-title {
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+
+    .stop-heading {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      color: #fff;
+    }
+
+    .script-box {
+      background: #050811;
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--cyan);
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      color: #cbd5e1;
+      min-height: 110px;
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    button {
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      background: var(--cyan);
+      color: #000;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    button:hover {
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+    }
+
+    button.secondary {
+      background: #1e293b;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .stop-list {
+      max-height: 250px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .stop-item {
+      padding: 8px 10px;
+      background: #050811;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .stop-item:hover, .stop-item.active {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div>
+      <div class="brand-title">DC CONDUCTOR // NARRATIVE ENGINE by Ramin</div>
+      <div style="font-size: 0.7rem; color: var(--muted);">HISTORICAL WAYPOINT TELEMETRY & ADAPTIVE SPEECH</div>
+    </div>
+    <div style="font-size: 0.8rem; color: var(--green);">📍 LIVE ROUTE ACTIVE</div>
+  </header>
+
+  <div class="app-layout">
+    <!-- Map Canvas -->
+    <div id="map"></div>
+
+    <!-- Sidebar Telemetry & Speech Panel -->
+    <div class="sidebar">
+      
+      <!-- Current Stop Card -->
+      <div class="card">
+        <div class="card-title">Active Waypoint</div>
+        <div id="stopName" class="stop-heading">3. Statue of Freedom</div>
+        <div id="stopCategory" style="font-size: 0.75rem; color: var(--cyan); margin-top: 4px;">CAPITOL HILL CIRCUIT</div>
+      </div>
+
+      <!-- Script & Voice Narration -->
+      <div class="card">
+        <div class="card-title">Live Conductor Narrative Script</div>
+        <div id="scriptText" class="script-box">
+          Perched atop the United States Capitol dome stands the Statue of Freedom. Cast in bronze by Thomas Crawford, she stands 19.5 feet tall and has watched over Washington DC since 1863.
+        </div>
+        <div style="margin-top: 10px;" class="controls-grid">
+          <button onclick="speakCurrentScript()">🔊 Narrate</button>
+          <button class="secondary" onclick="nextStop()">Next Waypoint ➔</button>
+        </div>
+      </div>
+
+      <!-- Historical Waypoint Route Selector -->
+      <div class="card">
+        <div class="card-title">Master Tour Waypoints</div>
+        <div id="stopListContainer" class="stop-list"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    // Cleaned Waypoint Data (Removed corporate speech elements)
+    const tourWaypoints = [
+      { id: 3, name: "Statue of Freedom", lat: 38.8899, lng: -77.0091, cat: "CAPITOL HILL", script: "Perched atop the United States Capitol dome stands the Statue of Freedom, cast in bronze and standing 19.5 feet tall." },
+      { id: 4, name: "Presidential Inauguration", lat: 38.8898, lng: -77.0095, cat: "CAPITOL HILL", script: "Every four years, the West Front of the Capitol hosts the Presidential Inauguration, continuing a tradition since 1801." },
+      { id: 5, name: "US Botanic Gardens", lat: 38.8881, lng: -77.0127, cat: "NATIONAL MALL", script: "Established in 1820, the US Botanic Garden is one of the oldest botanic gardens in North America." },
+      { id: 6, name: "Air and Space Museum", lat: 38.8882, lng: -77.0199, cat: "NATIONAL MALL", script: "Home to the 1903 Wright Flyer and the Apollo 11 Command Module Columbia." },
+      { id: 7, name: "Washington Monument", lat: 38.8895, lng: -77.0352, cat: "MONUMENT CIRCUIT", script: "Standing at 555 feet, this marble obelisk honors America's first president and remains the tallest structure in the District." },
+      { id: 8, name: "Bureau of Eng & Printing", lat: 38.8867, lng: -77.0330, cat: "MONUMENT CIRCUIT", script: "Where over half of all US paper currency is printed every single day." },
+      { id: 9, name: "Cherry Blossom Trees", lat: 38.8845, lng: -77.0380, cat: "TIDAL BASIN", script: "Gifted by the Mayor of Tokyo in 1912, these Yoshino trees transform the Tidal Basin every spring." },
+      { id: 10, name: "Jefferson Memorial", lat: 38.8814, lng: -77.0365, cat: "TIDAL BASIN", script: "Designed in the neoclassical style, honoring the primary author of the Declaration of Independence." },
+      { id: 11, name: "George Mason Memorial", lat: 38.8798, lng: -77.0388, cat: "TIDAL BASIN", script: "Honoring the author of the Virginia Declaration of Rights, which inspired the US Bill of Rights." },
+      { id: 12, name: "US Air Force Memorial", lat: 38.8687, lng: -77.0670, cat: "VIRGINIA SWEEP", script: "Three stainless steel spires soaring 402 feet into the air, symbolizing the bomb burst maneuver." },
+      { id: 13, name: "Arlington Nat'l Cemetery", lat: 38.8783, lng: -77.0685, cat: "VIRGINIA SWEEP", script: "Over 400,000 veterans lie at rest here across 639 acres of historic rolling hills." },
+      { id: 14, name: "FDR Memorial", lat: 38.8833, lng: -77.0428, cat: "MONUMENT CIRCUIT", script: "Spanning four outdoor rooms, representing Franklin D. Roosevelt's four terms in office." },
+      { id: 15, name: "MLK JR Memorial", lat: 38.8862, lng: -77.0442, cat: "MONUMENT CIRCUIT", script: "Carved from granite, depicting the Stone of Hope emerging from the Mountain of Despair." },
+      { id: 16, name: "Lincoln Memorial", lat: 38.8893, lng: -77.0502, cat: "MONUMENT CIRCUIT", script: "Featuring a 19-foot statue of Abraham Lincoln looking out toward the Washington Monument." },
+      { id: 17, name: "Vietnam Veterans Memorial", lat: 38.8913, lng: -77.0477, cat: "MONUMENT CIRCUIT", script: "Designed by Maya Lin, containing over 58,000 etched names of brave service members." },
+      { id: 18, name: "John Ericsson Memorial", lat: 38.8872, lng: -77.0515, cat: "MONUMENT CIRCUIT", script: "Honoring the designer of the USS Monitor, the ironclad ship that transformed naval warfare." },
+      { id: 20, name: "Washington City Canal", lat: 38.8920, lng: -77.0280, cat: "DOWNTOWN", script: "The historic canal route that once connected the Tiber Creek to the Anacostia River." },
+      { id: 21, name: "The White House", lat: 38.8977, lng: -77.0365, cat: "NORTH CIRCUIT", script: "The residence and workplace of every US president since John Adams in 1800." },
+      { id: 22, name: "African American Museum", lat: 38.8911, lng: -77.0300, cat: "SMITHSONIAN", script: "The NMAAHC features a striking bronze-colored corona structure inspired by Yoruba art." },
+      { id: 23, name: "American History Museum", lat: 38.8913, lng: -77.0300, cat: "SMITHSONIAN", script: "Preserves key artifacts including the Star-Spangled Banner and the First Ladies' gowns." },
+      { id: 24, name: "Natural History Museum", lat: 38.8913, lng: -77.0260, cat: "SMITHSONIAN", script: "Home to over 145 million specimens including the Hope Diamond and Henry the Elephant." },
+      { id: 25, name: "Ford's Theater", lat: 38.8967, lng: -77.0257, cat: "DOWNTOWN", script: "The historic site where President Lincoln was assassinated on April 14, 1865." },
+      { id: 27, name: "Mayor Muriel Bowser", lat: 38.8951, lng: -77.0315, cat: "CIVIC CORE", script: "John A. Wilson Building, serving as the seat of the District of Columbia local government." },
+      { id: 28, name: "US Treasury Building", lat: 38.8980, lng: -77.0335, cat: "FEDERAL CORE", script: "One of the oldest federal structures in DC, depicted on the back of the ten-dollar bill." },
+      { id: 29, name: "Grand Review of the Armies", lat: 38.8935, lng: -77.0220, cat: "PENNSYLVANIA AVE", script: "Site of the massive May 1865 Union army victory parade along Pennsylvania Avenue." },
+      { id: 30, name: "National Archives", lat: 38.8927, lng: -77.0230, cat: "CONSTITUTION AVE", script: "Home to the original Charters of Freedom: Declaration of Independence, Constitution, and Bill of Rights." },
+      { id: 31, name: "National Gallery of Art", lat: 38.8913, lng: -77.0199, cat: "NATIONAL MALL", script: "Features world-class collections across two iconic West and East building wings." },
+      { id: 32, name: "Capitol Building", lat: 38.8899, lng: -77.0091, cat: "CAPITOL HILL", script: "The seat of the United States Congress and an iconic symbol of American democracy." },
+      { id: 33, name: "Japanese American Memorial", lat: 38.8945, lng: -77.0110, cat: "CAPITOL HILL", script: "Honoring Japanese American patriotism and civil liberties during World War II." },
+      { id: 34, name: "Justice Thurgood Marshall", lat: 38.8940, lng: -77.0080, cat: "JUDICIARY", script: "Federal Judiciary Building named in honor of the nation's first African American Supreme Court Justice." }
+    ];
+
+    let currentAudio = null;
+    let currentIndex = 0;
+    let map, markersGroup;
+
+    // Initialize Map
+    function initMap() {
+      map = L.map('map').setView([38.8895, -77.0352], 14);
+
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
+        className: 'dark-tiles',
+        maxZoom: 18
+      }).addTo(map);
+
+      markersGroup = L.layerGroup().addTo(map);
+      renderWaypoints();
+      updateUI();
+    }
+
+    function renderWaypoints() {
+      markersGroup.clearLayers();
+      const stopContainer = document.getElementById('stopListContainer');
+      stopContainer.innerHTML = '';
+
+      tourWaypoints.forEach((wp, index) => {
+        // Plot Map Marker
+        const marker = L.circleMarker([wp.lat, wp.lng], {
+          radius: index === currentIndex ? 10 : 6,
+          color: index === currentIndex ? '#00f0ff' : '#64748b',
+          fillColor: index === currentIndex ? '#00f0ff' : '#0d1527',
+          fillOpacity: 0.8,
+          weight: 2
+        });
+
+        marker.bindPopup(`<b>${wp.id}. ${wp.name}</b><br>${wp.cat}`);
+        marker.on('click', () => selectStop(index));
+        markersGroup.addLayer(marker);
+
+        // Sidebar List
+        const item = document.createElement('div');
+        item.className = `stop-item ${index === currentIndex ? 'active' : ''}`;
+        item.innerHTML = `<span><b>${wp.id}.</b> ${wp.name}</span> <span style="font-size:0.65rem; opacity:0.7;">${wp.cat}</span>`;
+        item.onclick = () => selectStop(index);
+        stopContainer.appendChild(item);
+      });
+    }
+
+    function selectStop(index) {
+      currentIndex = index;
+      const wp = tourWaypoints[currentIndex];
+      map.flyTo([wp.lat, wp.lng], 15, { duration: 1.2 });
+      renderWaypoints();
+      updateUI();
+    }
+
+    function updateUI() {
+      const wp = tourWaypoints[currentIndex];
+      document.getElementById('stopName').innerText = `${wp.id}. ${wp.name}`;
+      document.getElementById('stopCategory').innerText = wp.cat;
+      document.getElementById('scriptText').innerText = wp.script;
+    }
+
+    function nextStop() {
+      currentIndex = (currentIndex + 1) % tourWaypoints.length;
+      selectStop(currentIndex);
+    }
+
+    function speakCurrentScript() {
+      // Stop any running speech or audio
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+      }
+
+      const wp = tourWaypoints[currentIndex];
+      const audioPath = `audio/stop_${wp.id}.mp3`;
+
+      // Attempt to play custom recorded audio
+      currentAudio = new Audio(audioPath);
+
+      currentAudio.play().catch(error => {
+        console.log(`Recorded audio for stop ${wp.id} not found. Falling back to synth voice.`);
+
+        // Fallback to robotic voice if MP3 isn't recorded yet
+        const utterance = new SpeechSynthesisUtterance(wp.script);
+        utterance.rate = 1.05;
+        window.speechSynthesis.speak(utterance);
+      });
+    }
+
+    window.onload = initMap;
+  </script>
+</body>
+</html>
