@@ -4,7 +4,7 @@ An interactive, web-based telemetry and tour narrative interface for Washington,
 
 ![DC Conductor Interface](https://raw.githubusercontent.com/caspian1988/dc-history-app/main/preview.png) *(Replace with your screenshot link)*
 
-## 🚀 Live Demo
+[![DEMO LIVE TRACKER](https://img.shields.io/badge/DEMO-LIVE_TRACKER-brightgreen?style=for-the-badge&logo=github)](https://caspian1988.github.io/dc_history_telemetry_narrative_engine/)
 
 Check out the interactive live demo:  
 👉 **[DC Conductor Live App](https://caspian1988.github.io/dc-history-app/)** *(Replace with your actual GitHub Pages URL)*
